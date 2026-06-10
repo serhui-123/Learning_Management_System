@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMS - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .card { border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 10px; min-height: 150px; }
+        .logout-btn { position: absolute; top: 20px; right: 20px; }
+    </style>
+</head>
+<body>
+
+<!-- Logout Button -->
+<button onclick="logout()" class="btn btn-outline-danger logout-btn">Logout</button>
+
+<div class="container mt-5">
+    <h1 id="welcome-msg" class="text-center font-weight-bold">LMS Core Management Dashboard</h1>
+    <p id="user-info" class="text-center text-muted mb-5">Connected via API Gateway (Port 8000)</p>
+
+    <div class="row">
+        <!-- User Service Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card p-3">
+                <h4 class="text-primary border-bottom pb-2">Student List (User)</h4>
+                <ul id="user-list" class="mt-2">Loading...</ul>
+            </div>
+        </div>
+
+        <!-- Course Service Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card p-3">
+                <h4 class="text-success border-bottom pb-2">Course Catalog (Course)</h4>
+                <ul id="course-list" class="mt-2">Loading...</ul>
+            </div>
+        </div>
+
+        <!-- Content Service Card -->
+        <div id="content-card" class="col-md-6 mb-4">
+            <div class="card p-3">
+                <h4 class="text-info border-bottom pb-2">Teaching Materials (Content)</h4>
+                <ul id="content-list" class="mt-2">Loading...</ul>
+            </div>
+        </div>
+
+        <!-- Assignment Service Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card p-3">
+                <h4 class="text-warning border-bottom pb-2">Task Activities (Assignment)</h4>
+                <ul id="assignment-list" class="mt-2">Loading...</ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const userRole = localStorage.getItem('userRole'); // e.g., "Student", "Lecturer", "Admin"
+    const userId = localStorage.getItem('userId');
+
+    if (!userRole || !userId) {
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('welcome-msg').innerText = `Welcome, ${userId}`;
+    document.getElementById('user-info').innerText = `Role: ${userRole.toUpperCase()}`;
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = 'login.html';
+    }
+
+    // --- ROLE-BASED VISIBILITY LOGIC ---
+    function applyPermissions() {
+        // 1. Get references to all cards
+        const userCard = document.getElementById('user-list').closest('.col-md-6');
+        const courseCard = document.getElementById('course-list').closest('.col-md-6');
+        const contentCard = document.getElementById('content-list').closest('.col-md-6');
+        const assignmentCard = document.getElementById('assignment-list').closest('.col-md-6');
+
+        // 2. Default: Hide sensitive cards
+        userCard.style.display = 'none';
+
+        // 3. Conditional Display based on your Architecture Roles
+        if (userRole === 'Admin') {
+            userCard.style.display = 'block'; // Only Admin sees Student List
+            // Admins usually see everything else too
+        }
+
+        if (userRole === 'Lecturer') {
+            // Lecturers manage courses and assignments
+            courseCard.style.display = 'block';
+            contentCard.style.display = 'block';
+            assignmentCard.style.display = 'block';
+        }
+
+        if (userRole === 'Student') {
+            // Students only see Courses, Materials, and Assignments
+            userCard.style.display = 'none';
+            courseCard.style.display = 'block';
+            contentCard.style.display = 'block';
+            assignmentCard.style.display = 'block';
+        }
+    }
+
+    async function fetchDashboard() {
+        const gateway = "http://localhost:8000";
+
+        // Logic to only fetch data if the card is visible (saves bandwidth!)
+        if (userRole === 'Admin') {
+            fetch(`${gateway}/users/users`)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('user-list').innerHTML = data.map(u => `<li>${u.username}</li>`).join('');
+                });
+        }
+
+        // Fetch Courses (Visible to everyone)
+        fetch(`${gateway}/courses/courses`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('course-list').innerHTML = data.map(c => `<li>${c.courseName}</li>`).join('');
+            });
+
+        // Add similar conditional fetch logic for Content and Assignment...
+    }
+
+    // Execute
+    applyPermissions();
+    fetchDashboard();
+</script>
+</body>
+</html>
