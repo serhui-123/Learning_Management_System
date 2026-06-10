@@ -1,0 +1,21 @@
+const Content = require('../models/Content');
+
+exports.addContent = async (req, res) => {
+  try {
+    const newContent = new Content({
+      courseId: "6a040c47805c7362e48605ca", // 这里可以先放你刚才生成的 Course ID
+      title: "Introduction to Microservices PDF",
+      contentType: "PDF",
+      url: "http://storage.s3.com/notes.pdf"
+    });
+    const saved = await newContent.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+};
+
+exports.getAllContent = async (req, res) => {
+  const contents = await Content.find();
+  res.json(contents);
+};
