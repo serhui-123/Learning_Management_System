@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lecturer LMS Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background: #f4f6f9; }
+        .sidebar { height: 100vh; background: #212529; color: white; padding-top: 20px; position: fixed; width: 16.666667%; z-index: 100; }
+        .sidebar a { display: block; color: rgba(255,255,255,0.75); text-decoration: none; padding: 15px 20px; cursor: pointer; transition: 0.2s; }
+        .sidebar a:hover, .sidebar a.active { background: #343a40; color: white; border-left: 4px solid #0d6efd; }
+        .main-content { margin-left: 16.666667%; padding: 30px; width: 83.333333%; }
+        .card-box { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: white; }
+        .section-header-bar { background: #800000; color: white; border-radius: 8px 8px 0 0; padding: 10px 15px; font-weight: bold; }
+        .assignment-clickable-card { cursor: pointer; transition: 0.2s; border: 1px solid #dee2e6; margin-bottom: 8px; }
+        .assignment-clickable-card:hover { border-color: #e67e22; background: #fffcf9 !important; }
+        .assignment-clickable-card.active-selected { border: 2px solid #e67e22; background: #fff9f2 !important; box-shadow: 0 0 10px rgba(230,126,34,0.15); }
+        .action-icon { cursor: pointer; transition: 0.2s; padding: 2px 5px; border-radius: 4px; }
+        .action-icon:hover { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-0">
+    <div class="d-flex">
+        <div class="sidebar">
+            <h3 class="text-center my-3 text-white">Lecturer LMS</h3>
+            <hr class="text-secondary opacity-25">
+            <a onclick="showSection('my-courses')" id="btn-my-courses" class="active"><i class="bi bi-book me-2"></i>My Courses</a>
+            <a onclick="logout()" class="text-danger mt-5"><i class="bi bi-box-arrow-right me-2"></i>Logout</a>
+        </div>
+
+        <div class="main-content">
+            <div id="sec-my-courses" class="dashboard-section">
+                <h1>Lecturer Dashboard Workspace</h1>
+                <hr>
+                <div class="card card-box p-4 mb-3">
+                    <h5 class="fw-bold text-secondary mb-3">Your Managed Modules (From DB Cluster)</h5>
+                    <div class="list-group mt-2" id="lecturer-live-course-list"></div>
+                </div>
+            </div>
+
+            <div id="sec-course-detail" class="dashboard-section d-none">
+                <button class="btn btn-sm btn-outline-secondary mb-3" onclick="showSection('my-courses')"><i class="bi bi-arrow-left"></i> Course Catalog</button>
+
+                <div class="card card-box p-4 mb-4 bg-dark text-white shadow-sm">
+                    <h1 id="lblActiveCourseTitle" class="text-info fw-bold mb-1">COURSE CODE - COURSE NAME</h1>
+                    <p class="mb-0 opacity-75 small"><i class="bi bi-cloud-check-fill text-success me-1"></i>Database Pipeline Cluster: Active Connected</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="card card-box mb-4 shadow-sm">
+                            <div class="section-header-bar"><i class="bi bi-megaphone-fill me-2"></i>Section 1: General & Course Announcements</div>
+                            <div class="p-3 bg-light border-bottom d-flex gap-2">
+                                <input type="text" class="form-control form-control-sm" id="txtAnnouncement" placeholder="Broadcast a new course alert notice...">
+                                <button class="btn btn-sm btn-danger fw-bold text-nowrap" onclick="executePublishNotice()">Broadcast</button>
+                            </div>
+                            <div class="p-3" id="box-announcements-list"></div>
+                        </div>
+
+                        <div class="card card-box mb-4 shadow-sm">
+                            <div class="section-header-bar" style="background: #2c3e50;"><i class="bi bi-journal-text me-2"></i>Section 2: Slides, Material Notes & Syllabus</div>
+                            <div class="p-3 bg-light border-bottom">
+                                <div class="row g-2">
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" id="txtMaterialTitle" placeholder="Chapter title..."></div>
+                                    <div class="col-5"><input type="file" class="form-control form-control-sm" id="fileMaterial"></div>
+                                </div>
+                                <button class="btn btn-sm btn-primary fw-bold w-100 mt-2" onclick="executeUploadNotes()">Upload Teaching Packet</button>
+                            </div>
+                            <div class="p-3" id="box-materials-list"></div>
+                        </div>
+
+                        <div class="card card-box mb-4 shadow-sm">
+                            <div class="section-header-bar" style="background: #e67e22;"><i class="bi bi-cloud-arrow-up-fill me-2"></i>Section 3: Formal Task & Coursework Assignment Bench</div>
+                            <div class="p-3">
+                                <form onsubmit="executeDeployAssignment(event)">
+                                    <div class="mb-2"><label class="small fw-bold">Assignment Task Title</label><input type="text" class="form-control form-control-sm" id="taskTitle" required></div>
+                                    <div class="mb-2"><label class="small fw-bold">Target Due Date</label><input type="datetime-local" class="form-control form-control-sm" id="taskDueDate" required></div>
+                                    <div class="mb-3"><label class="small fw-bold">Specs Description File</label><input type="file" class="form-control form-control-sm" id="taskFile" required></div>
+                                    <button type="submit" class="btn btn-sm btn-warning w-100 fw-bold text-dark">Publish Assignment & Sync DB</button>
+                                </form>
+                                <hr class="my-3">
+                                <label class="small fw-bold text-secondary mb-2"><i class="bi bi-list-stars"></i> Active Task Assignments History List:</label>
+                                <div id="box-active-assignment-spec"></div> </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5 ps-2">
+                        <div class="card card-box p-4 shadow-sm position-sticky" style="top: 20px;">
+                            <h5 class="fw-bold text-secondary border-bottom pb-2" id="lbl-matrix-title">
+                                <i class="bi bi-grid-3x3-gap me-2"></i>Student Tracker Matrix
+                            </h5>
+
+                            <div id="matrix-empty-state" class="text-center p-5 text-muted small">
+                                <i class="bi bi-info-circle fs-2 text-warning d-block mb-2"></i>
+                                Please click on any specific assignment card on the left to pull live data for student submission packages.
+                            </div>
+
+                            <table class="table table-sm align-middle mt-2 small d-none" id="real-matrix-table">
+                                <thead><tr><th>Student ID</th><th>Status</th><th>File</th><th>Grade</th><th>Action</th></tr></thead>
+                                <tbody id="lecturer-matrix-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeCode = "";
+    const backendBridgeUrl = "http://localhost:8080/LMS_war_exploded/api/course-bridge";
+    const lecturerUsername = localStorage.getItem("username") || "L9999";
+    let globalCourseCacheData = {};
+    let activeSelectedTaskName = ""; // 当前选中的作业名字
+
+    document.addEventListener("DOMContentLoaded", () => { loadLecturerCoursesFromDB(); });
+
+    function showSection(id) {
+        document.querySelectorAll('.dashboard-section').forEach(s => s.classList.add('d-none'));
+        document.getElementById('sec-' + id).classList.remove('d-none');
+        if(id === 'my-courses') loadLecturerCoursesFromDB();
+    }
+
+    async function loadLecturerCoursesFromDB() {
+        const container = document.getElementById('lecturer-live-course-list');
+        const res = await fetch(`${backendBridgeUrl}?mode=fetchAll&lecturer=${lecturerUsername}`);
+        const list = await res.json();
+        container.innerHTML = '';
+        if (list.length === 0) {
+            container.innerHTML = `<div class="p-3 text-muted small">🎉 No modules assigned.</div>`;
+            return;
+        }
+        list.forEach(c => {
+            const currentCode = c.courseCode || c.code; const currentName = c.courseName || c.name;
+            container.innerHTML += `<button onclick="enterCourseMatrix('${currentCode}', '${currentName}')" class="list-group-item list-group-item-action p-3 fw-bold text-primary"><strong>${currentCode}</strong> - ${currentName}</button>`;
+        });
+    }
+
+    function enterCourseMatrix(code, name) {
+        activeCode = code; activeSelectedTaskName = "";
+        document.getElementById('lblActiveCourseTitle').innerText = `${code} - ${name}`;
+        resetMatrixPanel(); showSection('course-detail'); syncFromModel();
+    }
+
+    function resetMatrixPanel() {
+        document.getElementById('matrix-empty-state').classList.remove('d-none');
+        document.getElementById('real-matrix-table').classList.add('d-none');
+        document.getElementById('lbl-matrix-title').innerHTML = `<i class="bi bi-grid-3x3-gap me-2"></i>Student Tracker Matrix`;
+    }
+
+    async function syncFromModel() {
+        const res = await fetch(`${backendBridgeUrl}?mode=fetchAll&lecturer=${lecturerUsername}`);
+        const allCourses = await res.json();
+        const data = allCourses.find(c => (c.courseCode || c.code) === activeCode) || {};
+        globalCourseCacheData = data;
+
+        // 渲染 Section 1 & 2 (略过保持原样)
+        const alertBox = document.getElementById('box-announcements-list'); alertBox.innerHTML = '';
+        if(data.announcements && data.announcements.length > 0){
+            data.announcements.forEach(a => {
+                alertBox.innerHTML += `<div class="p-2 mb-2 bg-white border rounded small d-flex justify-content-between align-items-center"><div><i class="bi bi-chat-left-quote text-danger me-2"></i>${a.title}</div><i class="bi bi-trash text-danger action-icon" onclick="executeDeleteSectionItem('deleteNotice', '${a.title}')"></i></div>`;
+            });
+        } else { alertBox.innerHTML = `<span class="text-muted small">No announcements posted.</span>`; }
+
+        const matBox = document.getElementById('box-materials-list'); matBox.innerHTML = '';
+        if(data.materials && data.materials.length > 0){
+            data.materials.forEach(m => {
+                matBox.innerHTML += `<div class="p-2 mb-2 bg-white border rounded small d-flex justify-content-between align-items-center"><div><i class="bi bi-file-earmark-pdf text-primary me-2"></i><strong>${m.title}</strong> <span class="badge bg-light text-dark border ms-1">${m.file}</span></div><div class="d-flex gap-2"><button onclick="executeRealStreamDownload('${m.file}', '${m.fileStream}')" class="btn btn-xs btn-outline-secondary py-0 px-2 small"><i class="bi bi-download"></i></button><i class="bi bi-trash text-danger action-icon" onclick="executeDeleteSectionItem('deleteMaterial', '${m.title}')"></i></div></div>`;
+            });
+        } else { matBox.innerHTML = `<span class="text-muted small">No educational materials available.</span>`; }
+
+        // 🌟 核心修复：多任务卡片历史列表迭代渲染
+        const assignBox = document.getElementById('box-active-assignment-spec');
+        assignBox.innerHTML = '';
+
+        // 如果没有 assignmentsHistory 数组，就用当前的单条垫底兜底
+        let historyList = data.assignmentsHistory || [];
+        if (historyList.length === 0 && data.taskTitle) {
+            historyList.push({ taskTitle: data.taskTitle, dueDate: data.dueDate, questionFile: data.questionFile, fileDataStream: data.fileDataStream });
+        }
+
+        if(historyList.length === 0) {
+            assignBox.innerHTML = `<div class="text-muted small p-2">No active assignments published.</div>`;
+            return;
+        }
+
+        // 循环把数据库里留存的所有 Assignment 依次排开变成独立卡片！
+        historyList.forEach((task, index) => {
+            const isSelected = activeSelectedTaskName === task.taskTitle ? 'active-selected' : '';
+            assignBox.innerHTML += `
+                <div id="task-card-${index}" class="p-3 bg-white rounded small assignment-clickable-card shadow-sm ${isSelected}" onclick="loadStudentMatrixForAssignment('${task.taskTitle}')">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-bold text-dark mb-1"><i class="bi bi-bookmark-star-fill text-warning me-1"></i>${task.taskTitle}</div>
+                            <div class="text-muted mb-1 small">Due: ${task.dueDate}</div>
+                            <div class="text-truncate small text-secondary">Spec: <span class="text-primary text-decoration-underline">${task.questionFile}</span></div>
+                        </div>
+                        <div class="d-flex gap-3 align-items-center">
+                            <i class="bi bi-trash text-danger action-icon fs-5" onclick="executeDeleteSectionItem('deleteAssignment', '${task.taskTitle}', event)"></i>
+                            <i class="bi bi-chevron-right text-muted fs-5"></i>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        // 如果之前选过某个任务，刷新时保持矩阵高亮
+        if (activeSelectedTaskName) loadStudentMatrixForAssignment(activeSelectedTaskName);
+    }
+
+    // 🌟 矩阵联动：点击某张特定的作业卡片，右侧就展示对应这个作业的批改矩阵
+    function loadStudentMatrixForAssignment(taskName) {
+        activeSelectedTaskName = taskName;
+
+        // 把所有的卡片高亮洗掉，只高亮当前点击的这一条
+        document.querySelectorAll('.assignment-clickable-card').forEach(c => c.classList.remove('active-selected'));
+        event?.currentTarget?.classList?.add('active-selected');
+
+        document.getElementById('matrix-empty-state').classList.add('d-none');
+        document.getElementById('real-matrix-table').classList.remove('d-none');
+        document.getElementById('lbl-matrix-title').innerHTML = `<i class="bi bi-patch-check text-warning me-2"></i>Matrix for [${taskName}]`;
+
+        const tbody = document.getElementById('lecturer-matrix-tbody');
+        tbody.innerHTML = '';
+
+        if (globalCourseCacheData.submissions && globalCourseCacheData.submissions.length > 0) {
+            // 🌟 过滤核心点：只捞出来属于该门作业的任务提交记录
+            globalCourseCacheData.submissions.forEach(s => {
+                // 如果学生记录里面的 activeTask 与当前选中的作业不符，说明他还没在 Assignment 2 里面提交，状态降级显示为 Not Submitted
+                const currentStatus = s.activeTask === taskName ? s.status : "Not Submitted";
+                const currentFile = s.activeTask === taskName ? s.file : "";
+                const currentStream = s.activeTask === taskName ? s.studentStream : "";
+
+                tbody.innerHTML += `
+                <tr>
+                    <td><strong>${s.id}</strong></td>
+                    <td><span class="badge ${currentStatus==='Submitted'?'bg-success':'bg-danger'}">${currentStatus}</span></td>
+                    <td class="small text-muted text-truncate" style="max-width: 100px;">
+                        ${currentFile ? `<button onclick="executeRealStreamDownload('${currentFile}', '${currentStream}')" class="btn btn-link btn-sm p-0 text-decoration-underline small text-start text-truncate" style="max-width:90px;">${currentFile}</button>` : 'None'}
+                    </td>
+                    <td class="text-primary fw-bold">${s.grade}</td>
+                    <td><button class="btn btn-xs btn-outline-primary py-0 px-1 small" ${currentStatus==='Submitted'?'':'disabled'} onclick="gradeStudent('${s.id}')">Grade</button></td>
+                </tr>`;
+            });
+        } else {
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted small p-3">No students mapped.</td></tr>`;
+        }
+    }
+
+    async function executeDeleteSectionItem(subAction, targetTitle, event) {
+        if(event) event.stopPropagation();
+        if (!confirm("Are you sure?")) return;
+        const formData = new FormData(); formData.append("action", "publishTask"); formData.append("courseCode", activeCode); formData.append("subAction", subAction);
+        if(targetTitle) formData.append("targetTitle", targetTitle);
+        await fetch(backendBridgeUrl, { method: 'POST', body: formData });
+        if (subAction === 'deleteAssignment') resetMatrixPanel();
+        await syncFromModel();
+    }
+
+    function executeRealStreamDownload(filename, base64Data) {
+        if(!base64Data || base64Data === "undefined" || base64Data === "") { alert("Error: No binary data."); return; }
+        const binaryString = window.atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) { bytes[i] = binaryString.charCodeAt(i); }
+        const blob = new Blob([bytes], { type: 'application/octet-stream' });
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    async function executePublishNotice() {
+        const text = document.getElementById('txtAnnouncement').value; if(!text) return;
+        const formData = new FormData(); formData.append("action", "publishTask"); formData.append("courseCode", activeCode); formData.append("announcementText", text);
+        await fetch(backendBridgeUrl, { method: 'POST', body: formData });
+        document.getElementById('txtAnnouncement').value = ''; await syncFromModel();
+    }
+
+    async function executeUploadNotes() {
+        const title = document.getElementById('txtMaterialTitle').value; const fileInput = document.getElementById('fileMaterial');
+        if(!title || !fileInput.files[0]) return;
+        const formData = new FormData(); formData.append("action", "publishTask"); formData.append("courseCode", activeCode); formData.append("materialTitle", title); formData.append("materialFile", fileInput.files[0]);
+        await fetch(backendBridgeUrl, { method: 'POST', body: formData });
+        document.getElementById('txtMaterialTitle').value = ''; fileInput.value = ''; await syncFromModel();
+    }
+
+    async function executeDeployAssignment(e) {
+        e.preventDefault();
+        const formData = new FormData(); formData.append("action", "publishTask"); formData.append("courseCode", activeCode);
+        formData.append("taskTitle", document.getElementById('taskTitle').value); formData.append("taskDueDate", document.getElementById('taskDueDate').value); formData.append("taskFile", document.getElementById('taskFile').files[0]);
+        await fetch(backendBridgeUrl, { method: 'POST', body: formData });
+        alert("🎉 New Assignment card deployed into historical pool!");
+        document.getElementById('taskTitle').value = ''; await syncFromModel();
+    }
+
+    async function gradeStudent(studentId) {
+        const mark = prompt("Enter mark (A, B, C):"); if(!mark) return;
+        const params = new URLSearchParams({ action: "gradeTask", courseCode: activeCode, studentId: studentId, grade: mark });
+        await fetch(backendBridgeUrl, { method: 'POST', body: params });
+        await syncFromModel();
+    }
+
+    function logout() { localStorage.clear(); window.location.href = "login.html"; }
+</script>
+</body>
+</html>
