@@ -1,0 +1,10 @@
+const mongoose = require('mongoose');
+
+const assignmentSchema = new mongoose.Schema({
+  courseId: { type: String, required: true },
+  taskName: { type: String, required: true },
+  deadline: { type: String, default: "2026-06-01" },
+  maxMarks: { type: Number, default: 100 }
+});
+
+module.exports = mongoose.model('Assignment', assignmentSchema);
