@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background: #f4f6f9; }
+        .sidebar { height: 100vh; background: #212529; color: white; padding-top: 20px; position: fixed; width: 16.666667%; z-index: 100; }
+        .sidebar a { display: block; color: rgba(255,255,255,0.75); text-decoration: none; padding: 15px 20px; cursor: pointer; transition: 0.2s; }
+        .sidebar a:hover, .sidebar a.active { background: #343a40; color: white; border-left: 4px solid #ffc107; }
+        .main-content { margin-left: 16.666667%; padding: 30px; width: 83.333333%; }
+        .card-box { border: none; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); background: white; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-0">
+    <div class="d-flex">
+        <div class="sidebar">
+            <h3 class="text-center my-3 text-white">Admin LMS</h3>
+            <hr class="text-secondary opacity-25">
+            <a onclick="showSection('manage-users')" id="btn-manage-users" class="active">Manage Users</a>
+            <a onclick="showSection('add-user')" id="btn-add-user">Add User</a>
+            <a onclick="showSection('manage-courses')" id="btn-manage-courses">Manage Courses</a>
+            <a onclick="logout()" class="text-danger mt-5"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+        </div>
+
+        <div class="main-content">
+            <div id="sec-manage-users" class="dashboard-section">
+                <h1>Admin System Dashboard</h1>
+                <hr>
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4"><div class="card card-box p-4 text-center"><h3 id="real-live-records-count" class="fw-bold text-primary">0</h3><p class="text-muted mb-0">Total Live Records (lms_user_db)</p></div></div>
+                    <div class="col-md-4"><div class="card card-box p-4 text-center"><span class="badge bg-success w-25 mx-auto mb-2">Connected</span><p class="text-muted mb-0">Database Context Matrix</p></div></div>
+                </div>
+                <div class="card card-box p-4">
+                    <h5>User Registry Account Table</h5>
+                    <table class="table table-hover mt-3">
+                        <thead>
+                        <tr>
+                            <th>User ID / Username</th>
+                            <th>Full Name</th>
+                            <th>Account Role</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody id="dynamic-user-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="sec-add-user" class="dashboard-section d-none">
+                <h1 id="form-action-title-user">Add New System User</h1>
+                <hr>
+                <div class="card card-box p-4" style="max-width: 600px;">
+                    <form onsubmit="handleRegisterUserForm(event)">
+                        <div class="mb-3"><label class="form-label fw-bold">User ID / Username</label><input type="text" class="form-control" id="newUsername" required></div>
+                        <div class="mb-3"><label class="form-label fw-bold">Full Name</label><input type="text" class="form-control" id="newName"></div>
+                        <div class="mb-3"><label class="form-label fw-bold">Role</label><select class="form-select" id="newRole"><option value="Student">Student</option><option value="Lecturer">Lecturer</option></select></div>
+                        <div class="mb-4"><label class="form-label fw-bold text-danger">Password</label><input type="password" class="form-control border-danger" id="newPassword" value="123456" required></div>
+                        <button type="submit" id="btn-submit-user" class="btn btn-warning text-dark fw-bold">Register User Account</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="sec-manage-courses" class="dashboard-section d-none">
+                <h1>Manage Academic Courses</h1>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card card-box p-4 border-start border-primary border-4 shadow-sm">
+                            <h5 class="fw-bold text-primary mb-3" id="form-action-title"><i class="bi bi-node-plus-fill me-2"></i>Provision New Course Module</h5>
+                            <form onsubmit="handleAdminDeployCourse(event)">
+                                <div class="mb-3"><label class="form-label fw-bold">Course Code ID</label><input type="text" class="form-control" id="admCourseCode" required></div>
+                                <div class="mb-3"><label class="form-label fw-bold">Course Name</label><input type="text" class="form-control" id="admCourseName" required></div>
+                                <div class="mb-3"><label class="form-label fw-bold">Assign Lecturer</label><select class="form-select" id="admLecturerSelect" required></select></div>
+                                <div class="mb-4"><label class="form-label fw-bold text-success">Enroll Students:</label><div class="p-3 bg-light border rounded" id="student-checkbox-container" style="max-height: 180px; overflow-y: auto;"></div></div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary fw-bold flex-grow-1" id="btn-submit-deploy">Deploy Module & Map Relationships</button>
+                                    <button type="button" class="btn btn-secondary d-none" id="btn-cancel-edit" onclick="exitEditMode()">Cancel Edit</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-6 ps-3">
+                        <div class="card card-box p-4 shadow-sm">
+                            <h5>Active Course Matrix</h5>
+                            <div class="list-group" id="admin-course-matrix-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const apiBridgeUrl = "http://localhost:8080/LMS_war_exploded/api/course-bridge";
+    let isUpdateMode = false;
+
+    document.addEventListener("DOMContentLoaded", () => { loadSystemUsersTable(); });
+
+    function showSection(id) {
+        document.querySelectorAll('.dashboard-section').forEach(sec => sec.classList.add('d-none'));
+        document.querySelectorAll('.sidebar a').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('sec-' + id).classList.remove('d-none');
+        if (document.getElementById('btn-' + id)) document.getElementById('btn-' + id).classList.add('active');
+        if (id === 'manage-users') loadSystemUsersTable();
+        if (id === 'manage-courses') { exitEditMode(); loadCourseContextSetupDesk(); }
+    }
+
+    // --- 👤 USER ACCOUNT SYSTEM SETUp ---
+    async function loadSystemUsersTable() {
+        const res = await fetch(`${apiBridgeUrl}?mode=fetchUsers`);
+        const users = await res.json();
+        document.getElementById('real-live-records-count').innerText = users.length;
+        const tbody = document.getElementById('dynamic-user-table-body');
+        tbody.innerHTML = '';
+
+        users.forEach(u => {
+            const isSelf = u.username === 'Admin1';
+            const actionButtons = isSelf ? `<span class="text-muted small">System Owner</span>` : `
+                <button class="btn btn-sm btn-warning me-1" onclick="executeEditUser('${u.username}', '${u.role}', '${u.password || '123456'}')"><i class="bi bi-pencil-square"></i></button>
+                <button class="btn btn-sm btn-danger" onclick="executeDeleteUser('${u.username}')"><i class="bi bi-trash"></i></button>
+            `;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${u.username}</strong></td>
+                    <td>${u.name || u.username}</td>
+                    <td><span class="badge ${u.role.toLowerCase()==='lecturer'?'bg-info':'bg-secondary'}">${u.role.toUpperCase()}</span></td>
+                    <td>${actionButtons}</td>
+                </tr>`;
+        });
+    }
+
+    function executeEditUser(username, role, password) {
+        showSection('add-user');
+        document.getElementById('form-action-title-user').innerText = "Modify User Account Credentials";
+        document.getElementById('btn-submit-user').innerText = "Save Changes & Update DB";
+
+        const uInput = document.getElementById('newUsername');
+        uInput.value = username;
+        uInput.setAttribute('readonly', 'true');
+        uInput.style.background = '#e9ecef';
+
+        document.getElementById('newRole').value = role;
+        document.getElementById('newPassword').value = password;
+        window.isUserUpdateMode = true;
+    }
+
+    function resetUserForm() {
+        window.isUserUpdateMode = false;
+        document.getElementById('form-action-title-user').innerText = "Add New System User";
+        document.getElementById('btn-submit-user').innerText = "Register User Account";
+        const uInput = document.getElementById('newUsername');
+        uInput.value = '';
+        uInput.removeAttribute('readonly');
+        uInput.style.background = '#ffffff';
+        if(document.getElementById('newName')) document.getElementById('newName').value = '';
+    }
+
+    async function handleRegisterUserForm(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append("action", "addUser");
+        formData.append("username", document.getElementById('newUsername').value);
+        formData.append("name", document.getElementById('newName').value);
+        formData.append("role", document.getElementById('newRole').value);
+        formData.append("password", document.getElementById('newPassword').value);
+
+        await fetch(apiBridgeUrl, {
+            method: 'POST',
+            body: formData
+        });
+
+        alert("✅ Account credential successfully synced into database!");
+        resetUserForm();
+        showSection('manage-users');
+    }
+
+    async function executeDeleteUser(username) {
+        if (confirm(`Are you sure you want to permanently erase user [${username}] from cluster database?`)) {
+            const formData = new FormData();
+            formData.append("action", "deleteUser");
+            formData.append("username", username);
+
+            await fetch(apiBridgeUrl, { method: 'POST', body: formData });
+            alert("🗑️ User account physically wiped from database!");
+            await loadSystemUsersTable();
+        }
+    }
+
+    // --- 📚 ACADEMIC COURSE MANAGEMENT SYSTEM SETUp ---
+    async function loadCourseContextSetupDesk() {
+        const res = await fetch(`${apiBridgeUrl}?mode=fetchUsers`);
+        const users = await res.json();
+        const lecSelect = document.getElementById('admLecturerSelect');
+        const stuContainer = document.getElementById('student-checkbox-container');
+        lecSelect.innerHTML = ''; stuContainer.innerHTML = '';
+
+        users.forEach(u => {
+            const r = u.role.toLowerCase();
+            if (r === 'lecturer') lecSelect.innerHTML += `<option value="${u.username}">${u.name || u.username}</option>`;
+            if (r === 'student') stuContainer.innerHTML += `<div class="form-check mb-2"><input class="form-check-input student-sync-checkbox" type="checkbox" value="${u.username}" id="chk-${u.username}"><label class="form-check-label small" for="chk-${u.username}"><strong>${u.username}</strong></label></div>`;
+        });
+        await refreshCoursesMatrix();
+    }
+
+    async function refreshCoursesMatrix() {
+        const container = document.getElementById('admin-course-matrix-container');
+        const res = await fetch(`${apiBridgeUrl}?mode=fetchAll`);
+        const list = await res.json();
+        container.innerHTML = '';
+
+        list.forEach(c => {
+            const code = c.courseCode || c.code;
+            const name = c.courseName || c.name;
+            const lec = c.lecturerUsername || c.lecturer;
+            const studentIds = c.selectedStudentIds || "";
+
+            container.innerHTML += `
+                <div class="list-group-item d-flex justify-content-between align-items-center p-3 mb-2 bg-light border-0 shadow-sm">
+                    <div>
+                        <span class="badge bg-dark mb-1">${code}</span>
+                        <h6 class="fw-bold mb-0 text-secondary">${name}</h6>
+                        <small class="text-muted">Lecturer: ${lec}</small>
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-warning me-1" onclick="enterEditMode('${code}', '${name}', '${lec}', '${studentIds}')">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="executeDeleteCourseEntry('${code}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function enterEditMode(code, name, lecturer, selectedStudentIds) {
+        isUpdateMode = true;
+        document.getElementById('form-action-title').innerHTML = `<i class="bi bi-pencil-square text-warning me-2"></i>Modify Course Schema`;
+        document.getElementById('btn-submit-deploy').innerText = "Save Changes & Update DB";
+        document.getElementById('btn-cancel-edit').classList.remove('d-none');
+
+        const codeInput = document.getElementById('admCourseCode');
+        codeInput.value = code;
+        codeInput.setAttribute('readonly', 'true');
+        codeInput.style.background = '#e9ecef';
+        codeInput.style.pointerEvents = 'none';
+
+        document.getElementById('admCourseName').value = name;
+        document.getElementById('admLecturerSelect').value = lecturer;
+
+        document.querySelectorAll('.student-sync-checkbox').forEach(cb => cb.checked = false);
+        if (selectedStudentIds) {
+            const ids = selectedStudentIds.split(',');
+            ids.forEach(id => {
+                const cb = document.getElementById(`chk-${id}`);
+                if (cb) cb.checked = true;
+            });
+        }
+    }
+
+    function exitEditMode() {
+        isUpdateMode = false;
+        document.getElementById('form-action-title').innerHTML = `<i class="bi bi-node-plus-fill me-2"></i>Provision New Course Module`;
+        document.getElementById('btn-submit-deploy').innerText = "Deploy Module & Map Relationships";
+        document.getElementById('btn-cancel-edit').classList.add('d-none');
+
+        const codeInput = document.getElementById('admCourseCode');
+        codeInput.value = '';
+        codeInput.removeAttribute('readonly');
+        codeInput.style.background = '#ffffff';
+        codeInput.style.pointerEvents = 'auto';
+
+        document.getElementById('admCourseName').value = '';
+        document.querySelectorAll('.student-sync-checkbox').forEach(cb => cb.checked = false);
+    }
+
+    async function handleAdminDeployCourse(e) {
+        e.preventDefault();
+        const studentIdsArray = [];
+        document.querySelectorAll('.student-sync-checkbox:checked').forEach(cb => studentIdsArray.push(cb.value));
+
+        const params = new URLSearchParams();
+        params.append("action", "adminCreateCourse");
+        params.append("isUpdate", isUpdateMode ? "true" : "false");
+        params.append("courseCode", document.getElementById('admCourseCode').value);
+        params.append("courseName", document.getElementById('admCourseName').value);
+        params.append("lecturerUsername", document.getElementById('admLecturerSelect').value);
+        params.append("selectedStudentIds", studentIdsArray.join(","));
+
+        await fetch(apiBridgeUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
+        });
+
+        alert(isUpdateMode ? "✅ Database update executed successfully!" : "🎉 New module provisioned successfully into database!");
+        exitEditMode();
+        await loadCourseContextSetupDesk();
+        await refreshCoursesMatrix();
+    }
+
+    async function executeDeleteCourseEntry(code) {
+        if (confirm(`Drop course [${code}]?`)) {
+            const params = new URLSearchParams();
+            params.append("action", "deleteCourse");
+            params.append("courseCode", code);
+
+            await fetch(apiBridgeUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            });
+
+            alert("🗑️ Course physically deleted from cluster!");
+            exitEditMode();
+            await loadCourseContextSetupDesk();
+            await refreshCoursesMatrix();
+        }
+    }
+
+    function logout() { localStorage.clear(); window.location.href = "login.html"; }
+</script>
+</body>
+</html>
